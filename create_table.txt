@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS buys (
+	id integer PRIMARY KEY,
+	symbol text NOT NULL,
+	company text NOT NULL,
+	shares integer NOT NULL,
+	price numeric NOT NULL,
+	user_id integer,
+	date real default (datetime('now','localtime')),
+	FOREIGN KEY (user_id) REFERENCES users (id)
+);
+	
