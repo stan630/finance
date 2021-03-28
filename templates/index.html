@@ -18,24 +18,25 @@
     </thead>
     <tfoot>
         <tr>
-            <td colspan="4">CASH</td>
-            <td>$10,000</td>
+            <td colspan="4">Portfolio Value</td>
+            <td>{{ grand_total }}</td>
         </tr>
     </tfoot>
     <tbody>
 
-        {% for row in rows %}
+        {% for holding in holdings %}
         <tr>
-            <td>{{row.symbol.upper()}}</td>
-            <td>{{row.company}}</td>
-            <td>{{row.shares}}</td>
-            <td>{{ price | usd }}</td>
-            <td>{{ cost }} | usd }}</td>
+            <td>{{ holding.symbol}}</td>
+            <td>{{ holding.name }}</td>
+            <td>{{ holding.shares }}</td>
+            <td>{{ holding.price }}</td>
+            <td> {{ holding.totCost }}</td> 
             </tr>
         {% endfor %}
 
         <tr>
             <td colspan="4">CASH</td>
+            <td>{{ cash_balance }}</td>
         </tr>
     </tbody>
 

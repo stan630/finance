@@ -1,3 +1,5 @@
+
+
 import os
 
 from cs50 import SQL
@@ -41,71 +43,38 @@ db = SQL("sqlite:///finance.db")
 if not os.environ.get("API_KEY"): # pk_c1ed09bf5c9a4aacb392aa5dc3a7bb04 
     raise RuntimeError("API_KEY not set")
 
-
 @app.route("/")
+@app.route("/index")
 @login_required
 def index():
     user = session["user_id"]
-    rows = db.execute("SELECT symbol, company, shares, price from buys where user_id = ? GROUP BY company",user)
-    symbol = rows[0]['symbol']
-    symbol = symbol.upper()
-    print(symbol)
+    rows = db.execute("""
+    SELECT symbol, company, SUM(shares) as totShares
+    FROM buys 
+    WHERE user_id = ? GROUP BY symbol""",user)
+    
     # shares = rows[0]['sum(shares)']
-    response = lookup(symbol)
-    price = response['price']
-    # cost= shares * price
-    return render_template("index.html", rows=rows, price=price)
-    # cash_balance = 0
-    
-    return apology("Make a menu selection.")
-    
-app.route("/buy", methods=["GET", "POST"])
-@login_required
-def buy():
-    if request.method == "POST":
-        symbol = request.form.get("symbol")
-        if not symbol:
-            return apology("Symbol missing",403)
-        shares = request.form.get("shares")
-        if not shares :
-            return apology("Number of shares missing",403)
-        try:
-            shares = int(shares)
-            if shares < 0:  
-                return apology("Shares must be a positive number")
-        except:
-            return apology("Shares must be a positive number")
-        
-        user = session["user_id"]
-        response = lookup(symbol.upper())
-        company = response['name']
-        price = response['price']
-        cost= shares * price
-        cash_balance = 0
-        
-        old_balance = db.execute("SELECT cash from users where id = ?",user)
-        # get value from dictionary inside a list
-        cash_balance = old_balance[0]['cash']
-        new_balance = cash_balance - cost
-        if new_balance < 0:
-            return apology("You don't have enough cash in your account.",403)
-        
-        db.execute("INSERT INTO buys (symbol,company, shares, price, user_id) \
-        VALUES(?,?,?,?,?)", symbol, company, shares, price, user)
-        
-        return render_template("index.html",response=response,shares=shares,cost=cost,new_balance=new_balance,message="Bought!")
-    else:
-        print("Hello Smedley")
-        return render_template("buy.html")
-    
-
-
-@app.route("/history")
-@login_required
-def history():
-    """Show history of transactions"""
-    return apology("TODO")
-
+    holdings = []
+    grand_total = 0
+    for row in rows:
+        response = lookup(row["symbol"])
+        holdings.append({
+            "symbol": response["symbol"],
+            "name": response["name"],
+            "shares": row["totShares"],
+            "price": usd(response["price"]),
+            "totCost": usd(response["price"] * row["totShares"])
+        })
+        grand_total += response["price"] * row["totShares"]
+    cash_balance = 0
+    old_balance = db.execute("SELECT cash from users where id = ?",user)
+    # get value from dictionary inside a list
+    cash_balance = old_balance[0]['cash']
+    grand_total += cash_balance
+    # new_balance = cash_balance - int(holdings[0]["totCost"])
+    # if new_balance < 0:
+    #     return apology( "You don't have enough cash in your account")
+    return render_template("index.html",holdings=holdings, cash_balance=usd(cash_balance), grand_total=usd(grand_total))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -153,23 +122,6 @@ def logout():
     # Redirect user to login form
     return redirect("/")
 
-
-@app.route("/quote", methods=["GET", "POST"])
-@login_required
-def quote():
-    if request.method == "POST":
-        symbol = request.form.get("symbol")
-        response =lookup(symbol.upper())
-        if not response:
-            return apology("Stock symbol missing or incorrect symbol.",403)
-        return render_template("quoted.html", response=response)
-    else:
-        return render_template("quote.html")
-
-    
-    
-
-
 @app.route("/register", methods=["GET","POST"])
 def register():
     if request.method == "POST":
@@ -206,7 +158,77 @@ def register():
     else:
         return render_template("register.html")
 
+    
+    
+    # return apology("Make a menu selection.")
+    
+@app.route("/buy",methods=["GET", "POST"] )
+@login_required
+def buy():
+    if request.method == "POST":
+        symbol = request.form.get("symbol")
+        if not symbol:
+            return apology("Symbol missing",403)
+        shares = request.form.get("shares")
+        if not shares :
+            return apology("Number of shares missing",403)
+        try:
+            shares = int(shares)
+            if shares < 0:  
+                return apology("Shares must be a positive number")
+        except:
+            return apology("Shares must be a positive number")
+        
+        user = session["user_id"]
+        print("User: ", user)
+        #############################
+        response = lookup(symbol.upper())
+        company = response['name']
+        price = response['price']
+        cost= shares * price
+        print("cost:",cost)
+                
+        cash_balance = db.execute("SELECT cash from users where id = ?", user)
+        # get value from dictionary inside a list
+        cash_balance = cash_balance[0]['cash']
+        print("cash balance:",cash_balance)
+        new_balance = cash_balance - cost
+        print("new balance: ",new_balance)
+        if new_balance < 0:
+            return apology("You don't have enough cash in your account.",403)
+        
+        db.execute("INSERT INTO buys (symbol,company, shares, price, user_id) \
+        VALUES(?,?,?,?,?)", symbol, company, shares, price, user)
+        db.execute("UPDATE users SET cash = 9000 where id= ?",user)
+        return render_template("index.html",holdings=response, shares=shares, cost=cost,new_balance=new_balance,message="Bought!")
+    else:
+        return render_template("buy.html")
+    
 
+
+@app.route("/history")
+@login_required
+def history():
+    """Show history of transactions"""
+    return apology("TODO")
+
+
+
+
+
+@app.route("/quote", methods=["GET", "POST"])
+@login_required
+def quote():
+    if request.method == "POST":
+        symbol = request.form.get("symbol")
+        response =lookup(symbol.upper())
+        if not response:
+            return apology("Stock symbol missing or incorrect symbol.",403)
+        return render_template("quoted.html", response=response)
+    else:
+        return render_template("quote.html")
+
+    
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
 def sell():
@@ -218,7 +240,8 @@ def errorhandler(e):
     """Handle error"""
     if not isinstance(e, HTTPException):
         e = InternalServerError()
-    return apology(e.name, e.code)
+    # return apology(e.name, e.code)
+    return apology("This is an apology")
 
 
 # Listen for errors
