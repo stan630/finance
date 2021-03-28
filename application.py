@@ -5,6 +5,7 @@ import os
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template,\
      request, session, jsonify
+from flask.helpers import url_for
 from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
@@ -71,9 +72,7 @@ def index():
     # get value from dictionary inside a list
     cash_balance = old_balance[0]['cash']
     grand_total += cash_balance
-    # new_balance = cash_balance - int(holdings[0]["totCost"])
-    # if new_balance < 0:
-    #     return apology( "You don't have enough cash in your account")
+    
     return render_template("index.html",holdings=holdings, cash_balance=usd(cash_balance), grand_total=usd(grand_total))
 
 @app.route("/login", methods=["GET", "POST"])
@@ -165,6 +164,7 @@ def register():
 @app.route("/buy",methods=["GET", "POST"] )
 @login_required
 def buy():
+    
     if request.method == "POST":
         symbol = request.form.get("symbol")
         if not symbol:
@@ -180,27 +180,44 @@ def buy():
             return apology("Shares must be a positive number")
         
         user = session["user_id"]
-        print("User: ", user)
-        #############################
+       
         response = lookup(symbol.upper())
         company = response['name']
         price = response['price']
         cost= shares * price
-        print("cost:",cost)
-                
         cash_balance = db.execute("SELECT cash from users where id = ?", user)
         # get value from dictionary inside a list
         cash_balance = cash_balance[0]['cash']
-        print("cash balance:",cash_balance)
-        new_balance = cash_balance - cost
-        print("new balance: ",new_balance)
-        if new_balance < 0:
+        print("cash balance: ", cash_balance)
+        cash_balance = cash_balance - cost
+        
+        if cash_balance < 0:
             return apology("You don't have enough cash in your account.",403)
         
         db.execute("INSERT INTO buys (symbol,company, shares, price, user_id) \
         VALUES(?,?,?,?,?)", symbol, company, shares, price, user)
-        db.execute("UPDATE users SET cash = 9000 where id= ?",user)
-        return render_template("index.html",holdings=response, shares=shares, cost=cost,new_balance=new_balance,message="Bought!")
+
+        rows = db.execute("""
+        SELECT symbol, company, SUM(shares) as totShares
+        FROM buys 
+        WHERE user_id = ? GROUP BY symbol""",user)
+        holdings = []
+        grand_total = 0
+        for row in rows:
+            response = lookup(row["symbol"])
+            holdings.append({
+                "symbol": response["symbol"],
+                "name": response["name"],
+                "shares": row["totShares"],
+                "price": usd(response["price"]),
+                "totCost": usd(response["price"] * row["totShares"])
+            })
+            grand_total += response["price"] * row["totShares"]
+
+                
+        
+        db.execute("UPDATE users SET cash = ? where id= ?",cash_balance,user)
+        return render_template('index.html', holdings=holdings, cash_balance=usd(cash_balance,), grand_total=usd(grand_total),message="Bought")
     else:
         return render_template("buy.html")
     
