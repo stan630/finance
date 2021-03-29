@@ -212,12 +212,12 @@ def buy():
                 "price": usd(response["price"]),
                 "totCost": usd(response["price"] * row["totShares"])
             })
-            grand_total += response["price"] * row["totShares"]
+            grand_total += (response["price"] * row["totShares"]) + cash_balance
 
                 
         
         db.execute("UPDATE users SET cash = ? where id= ?",cash_balance,user)
-        return render_template('index.html', holdings=holdings, cash_balance=usd(cash_balance,), grand_total=usd(grand_total),message="Bought")
+        return render_template('index.html', holdings=holdings, cash_balance=usd(cash_balance,), shares=shares, company=company, grand_total=usd(grand_total),message="Bought")
     else:
         return render_template("buy.html")
     
