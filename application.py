@@ -135,8 +135,6 @@ def register():
         password = request.form.get("password")
         confirm = request.form.get("confirmation")
 
-        print(password, confirm)
-        
         if password != confirm:
             return apology("passwords don't match", 403)
         
@@ -188,7 +186,6 @@ def buy():
         cash_balance = db.execute("SELECT cash from users where id = ?", user)
         # get value from dictionary inside a list
         cash_balance = cash_balance[0]['cash']
-        print("cash balance: ", cash_balance)
         cash_balance = cash_balance - cost
         
         if cash_balance < 0:
@@ -214,12 +211,36 @@ def buy():
             })
             grand_total += (response["price"] * row["totShares"]) + cash_balance
 
-                
-        
         db.execute("UPDATE users SET cash = ? where id= ?",cash_balance,user)
         return render_template('index.html', holdings=holdings, cash_balance=usd(cash_balance,), shares=shares, company=company, grand_total=usd(grand_total),message="Bought")
     else:
         return render_template("buy.html")
+
+@app.route("/sell", methods=["GET", "POST"])
+@login_required
+def sell():
+    if request.method == "POST":
+        symbol = request.form.get("symbol")
+        if not symbol:
+            return apology("symbol missing")
+        shares = request.form.get("shares")
+        if not shares:
+            return apology("shares missing")
+        user = session["user_id"]
+        return render_template("index.html")
+        
+    
+    else:
+        user = session["user_id"]
+        symbols = None
+        symbols = db.execute("""
+        SELECT symbol FROM buys 
+        WHERE user_id = ? GROUP BY symbol""", user)
+        print("symbol: ", symbols)
+        return render_template("sell.html", symbols=symbols)
+
+        
+    
     
 
 
@@ -246,12 +267,6 @@ def quote():
         return render_template("quote.html")
 
     
-@app.route("/sell", methods=["GET", "POST"])
-@login_required
-def sell():
-    """Sell shares of stock"""
-    return apology("TODO")
-
 
 def errorhandler(e):
     """Handle error"""
