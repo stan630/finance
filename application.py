@@ -69,6 +69,7 @@ def index():
         grand_total += response["price"] * row["totShares"]
     cash_balance = 0
     old_balance = db.execute("SELECT cash from users where id = ?",user)
+    print( "Old Balance ", old_balance)
     # get value from dictionary inside a list
     cash_balance = old_balance[0]['cash']
     grand_total += cash_balance
@@ -229,21 +230,20 @@ def sell():
         user = session["user_id"]
         return render_template("index.html")
         
-    
     else:
         user = session["user_id"]
         symbols = None
         symbols = db.execute("""
         SELECT symbol FROM buys 
         WHERE user_id = ? GROUP BY symbol""", user)
-        print("symbol: ", symbols)
-        return render_template("sell.html", symbols=symbols)
+        count = len(symbols)
+        count = count +1
+        # get value from dictionary inside a list
+        justValues = [sub['symbol'] for sub in symbols]
+        print("Symbols: ", justValues)
+        return render_template("sell.html", symbols=justValues)
 
         
-    
-    
-
-
 @app.route("/history")
 @login_required
 def history():
