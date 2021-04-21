@@ -7,10 +7,10 @@
 {% block main %}
     <form action="/sell" method="post">
         <div class="form-group">
-            <select name="symbols",class="form-select form-select-lg mb-3" aria-label=" .form-select-lg example">
+            <select name="symbol",class="form-select form-select-lg mb-3" aria-label=" .form-select-lg example">
                 <option disabled selected value="">Select symbol</option>
                 {% for symbol in symbols %}
-                    <option value="{{symbol}}">{{symbol.upper()}}</option>
+                    <option name="symbol" value="{{symbol}}">{{symbol.upper()}}</option>
                 {% endfor %}
             </select>
         </div>
