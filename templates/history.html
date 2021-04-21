@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+
+{% block title %}
+   Portfolio
+{% endblock %}
+
+{% block main %}
+{% if message == "Sold" %}
+    <div class="alert alert-primary border text-center">You {{message}} {{sellShares}} shares of {{ company }}</div>
+{% endif %}
+
+{% if message == "Bought" %}
+    <div class="alert alert-primary border text-center">You {{message}} {{shares}} shares of {{ company }}</div>
+{% endif %}
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Symbol</th>
+            <!-- <th>Name</th> -->
+            <th>Shares</th>
+            <th>Price</th>
+            <th>Transacted</th>
+        </tr>
+    </thead>
+    
+    <tbody>
+
+        {% for holding in holdings %}
+        <tr>
+            <td>{{ holding.symbol.upper()}}</td>
+            <!-- <td>{{ holding.name }}</td> -->
+            <td>{{ holding.shares }}</td>
+            <td>{{ holding.price | usd }}</td>
+            <td> {{ holding.trans_date }}</td> 
+        </tr>
+        {% endfor %}
+        
+    </tbody>
+
+</table>
+    
+{% endblock %}

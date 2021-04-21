@@ -227,6 +227,27 @@ def sell():
 @login_required
 def history():
     """Show history of transactions"""
+    user = session["user_id"]
+    holdings = []
+    rows = db.execute("""
+    SELECT symbol, shares, price, trans_date
+    FROM transactions
+    WHERE user_id = ? """, user)
+    for row in rows:
+        holdings.append({
+            "symbol": row["symbol"],
+            "shares": row["shares"],
+            "price": row["price"],
+            "trans_date": row["trans_date"]
+        })
+    return render_template("history.html", holdings=holdings)
+        
+    print("History: ", holdings)
+        
+        
+       
+
+
     return apology("TODO")
 
 
